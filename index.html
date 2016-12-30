@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>A-Frame Webcam Component</title>
+  <script src='lib/aframe.min.js'></script>
+  <script>
+  AFRAME.registerComponent('webcamtexture', {
+    schema: {
+      texture: new Image(2,2)
+    },
+    update: function (previousData) {
+      var object3D = this.el.object3D;
+      var textureElement = document.querySelector(this.data.texture);
+
+      var videoTexture = new THREE.VideoTexture(textureElement);
+      videoTexture.minFilter = videoTexture.magFilter;
+
+      var material = new THREE.ShaderMaterial({
+        uniforms: {
+          texture: { type: 't', value: videoTexture }
+        }
+      });
+      object3D.material = material;
+    }
+  });  
+
+  navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+  navigator.mozGetUserMedia && (selectDevice.style.display = 'none');
+  navigator.mediaDevices.enumerateDevices().then((devices) => {
+    for(var device of devices) {
+      console.log(device.label);
+      if (device.kind !== 'videoinput') continue;
+      var opt = document.createElement('option');
+
+      console.log("DEVICE:" + device.deviceId);
+      opt.text = device.label || device.deviceId;
+      opt.value = device.deviceId;
+      selectDevice.appendChild(opt);
+    }
+    changeInput(selectDevice.value);
+    selectDevice.addEventListener('change', () => {
+      changeInput(selectDevice.value);
+    });
+  });
+
+  var changeInput = (deviceId) => {
+    navigator.getUserMedia({
+      video: {
+        optional: [{ sourceId: deviceId }]
+      }, audio: false
+    }, (stream) => {
+      console.log("STREAM:" + URL.createObjectURL(stream));
+      webcamVideo.src = URL.createObjectURL(stream);
+      webcamVideo.play();
+    }, () => { });
+  }
+
+  </script>
+</head>
+<body>
+  <select id="selectDevice" style="z-index:9999;position:absolute"></select>
+  <a-scene stats="false">
+    <a-assets>
+      <video id="webcamVideo" src="blob:http://localhost:10000/c1adfea7-551c-4771-9c76-eced8b9b662f"></video>
+      <a-mixin id="webcam" webcamtexture="texture: #webcamVideo"></a-mixin>
+    </a-assets>
+    <a-entity>
+      <a-entity camera look-controls></a-entity>
+    </a-entity>
+    <a-box position="0 0 -2" size="0.1 0.1 0.1" mixin="webcam"></a-box>
+    <a-entity geometry="primitive: sphere; radius: 100; segmentsWidth:64; segmentsHeight:64;" scale="-1 1 1" rotation="0 0 0"></a-entity>
+  </a-scene>
+</body>
+</html>
